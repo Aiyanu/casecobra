@@ -31,6 +31,8 @@ export async function POST(req: Request) {
         orderId: null,
       };
 
+      console.log(userId, orderId);
+
       if (!userId || !orderId) {
         throw new Error("Invalid request metadata");
       }
