@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { ok } from "assert";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 
 export async function POST(req: Request) {
   try {
@@ -24,6 +25,7 @@ export async function POST(req: Request) {
       }
 
       const session = event.data.object as Stripe.Checkout.Session;
+
       const { userId, orderId } = session.metadata || {
         userId: null,
         orderId: null,
@@ -44,22 +46,22 @@ export async function POST(req: Request) {
           isPaid: true,
           shippingAddress: {
             create: {
-              name: session.customer_details!.name,
-              city: shippingAddress!.city,
-              country: shippingAddress!.country,
-              street: shippingAddress!.line1,
-              postalCode: shippingAddress!.postal_code,
-              state: shippingAddress!.state,
+              name: session.customer_details!.name!,
+              city: shippingAddress!.city!,
+              country: shippingAddress!.country!,
+              street: shippingAddress!.line1!,
+              postalCode: shippingAddress!.postal_code!,
+              state: shippingAddress!.state!,
             },
           },
-          billingAddess: {
+          billingAddress: {
             create: {
-              name: session.customer_details!.name,
-              city: billingAddress!.city,
-              country: billingAddress!.country,
-              street: billingAddress!.line1,
-              postalCode: billingAddress!.postal_code,
-              state: billingAddress!.state,
+              name: session.customer_details!.name!,
+              city: billingAddress!.city!,
+              country: billingAddress!.country!,
+              street: billingAddress!.line1!,
+              postalCode: billingAddress!.postal_code!,
+              state: billingAddress!.state!,
             },
           },
         },

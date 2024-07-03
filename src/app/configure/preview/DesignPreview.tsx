@@ -37,7 +37,7 @@ function DesignPreview({ configuration }: { configuration: Configuration }) {
 
   const { label: modelLabel } = MODELS.options.find(
     ({ value }) => value === model
-  );
+  )!;
 
   let totalPrice = BASE_PRICE;
   if (material === "polycarbonate")
