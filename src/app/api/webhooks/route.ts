@@ -1,11 +1,10 @@
 import { db } from "@/db";
 import { stripe } from "@/lib/stripe";
-import { ok } from "assert";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { Resend } from "resend";
-import OrderReceivedEmail from "@/components/email/OrderReceivedEmail";
+import OrderReceivedEmail from "@/components/emails/OrderReceivedEmail";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -13,19 +12,20 @@ export async function POST(req: Request) {
   try {
     const body = await req.text();
     const signature = headers().get("stripe-signature");
+
     if (!signature) {
-      return new Response("Invalid signature", {
-        status: 400,
-      });
+      return new Response("Invalid signature", { status: 400 });
     }
-    const event = await stripe.webhooks.constructEvent(
+
+    const event = stripe.webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
+
     if (event.type === "checkout.session.completed") {
       if (!event.data.object.customer_details?.email) {
-        throw new Error("Missing user Email");
+        throw new Error("Missing user email");
       }
 
       const session = event.data.object as Stripe.Checkout.Session;
@@ -34,8 +34,6 @@ export async function POST(req: Request) {
         userId: null,
         orderId: null,
       };
-
-      console.log(userId, orderId);
 
       if (!userId || !orderId) {
         throw new Error("Invalid request metadata");
@@ -55,9 +53,9 @@ export async function POST(req: Request) {
               name: session.customer_details!.name!,
               city: shippingAddress!.city!,
               country: shippingAddress!.country!,
-              street: shippingAddress!.line1!,
               postalCode: shippingAddress!.postal_code!,
-              state: shippingAddress!.state!,
+              street: shippingAddress!.line1!,
+              state: shippingAddress!.state,
             },
           },
           billingAddress: {
@@ -65,9 +63,9 @@ export async function POST(req: Request) {
               name: session.customer_details!.name!,
               city: billingAddress!.city!,
               country: billingAddress!.country!,
-              street: billingAddress!.line1!,
               postalCode: billingAddress!.postal_code!,
-              state: billingAddress!.state!,
+              street: billingAddress!.line1!,
+              state: billingAddress!.state,
             },
           },
         },
@@ -79,24 +77,26 @@ export async function POST(req: Request) {
         subject: "Thanks for your order!",
         react: OrderReceivedEmail({
           orderId,
-          orderDate: updatedOrder.createdAt.toLocaleString(),
-          //@ts-ignore
+          orderDate: updatedOrder.createdAt.toLocaleDateString(),
+          // @ts-ignore
           shippingAddress: {
             name: session.customer_details!.name!,
             city: shippingAddress!.city!,
             country: shippingAddress!.country!,
-            street: shippingAddress!.line1!,
             postalCode: shippingAddress!.postal_code!,
-            state: shippingAddress!.state!,
+            street: shippingAddress!.line1!,
+            state: shippingAddress!.state,
           },
         }),
       });
     }
+
     return NextResponse.json({ result: event, ok: true });
   } catch (err) {
-    console.log(err);
+    console.error(err);
+
     return NextResponse.json(
-      { message: "something went wrong", ok: false },
+      { message: "Something went wrong", ok: false },
       { status: 500 }
     );
   }
